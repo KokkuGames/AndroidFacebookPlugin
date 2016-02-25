@@ -1,0 +1,126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--GearVR plugin additions-->
+<root xmlns:android="http://schemas.android.com/apk/res/android">
+	<!-- init section is always evaluated once per architecture -->
+	<trace enable="true"/>
+	<init>
+		<log text="Android Facebook init"/>		
+	</init>
+	
+	<androidManifestUpdates>
+		<addElements tag="application">
+      <activity android:name="com.facebook.FacebookActivity"
+          android:configChanges=
+                 "keyboard|keyboardHidden|screenLayout|screenSize|orientation"
+          android:theme="@android:style/Theme.Translucent.NoTitleBar"
+          android:label="@string/app_name" />
+
+      
+    </addElements>
+    
+		<setStringFromProperty result="FacebookAppId" ini="Engine" section="/Script/AndroidFacebookPlugin.AndroidFacebookSettings" property="FacebookAppId" default="undefined"/>
+    <setElement result="fbMetaData" value="meta-data"/>
+    <addAttribute tag="$fbMetaData" name="android:name" value="com.facebook.sdk.ApplicationId"/>
+    <addAttribute tag="$fbMetaData" name="android:value" value="$S(FacebookAppId)"/>
+    <addElement tag="application" name="fbMetaData"/>
+	</androidManifestUpdates>
+
+	<!-- optional additions to proguard -->
+	<proguardAdditions>
+		<insert>
+<!-- -keep class com.oculus.** {
+<meta-data android:name="com.facebook.sdk.ApplicationId"/>
+   *;
+}
+-keep class android.app.** {
+   *;
+} -->
+
+-keep class com.facebook.** { *; }
+		</insert>
+	</proguardAdditions>
+	
+	<!-- optional files or directories to copy to Intermediate/Android/APK -->
+ 	<resourceCopies>
+    <copyFile src="$S(PluginDir)/../../lib/facebook.jar" dst="$S(BuildDir)/libs/facebook.jar" />
+    <copyFile src="$S(PluginDir)/../../lib/android-support-v7-cardview.jar" dst="$S(BuildDir)/libs/android-support-v7-cardview.jar" />
+		<copyDir src="$S(PluginDir)/../../res" dst="$S(BuildDir)/res" />
+	</resourceCopies>
+
+	<!-- optional additions to the GameActivity imports in GameActivity.java -->
+	<gameActivityImportAdditions>
+		<insert>
+			import com.facebook.FacebookSdk;
+		</insert>
+	</gameActivityImportAdditions>
+	
+
+	<!-- optional additions to the GameActivity class in GameActivity.java -->
+	<gameActivityClassAdditions>
+		<insert>		
+		</insert>
+	</gameActivityClassAdditions>
+	
+	<!-- optional additions to GameActivity onCreate metadata reading in GameActivity.java -->
+	<gameActivityReadMetadataAdditions>
+		<insert>	
+			
+		</insert>
+	</gameActivityReadMetadataAdditions>
+	
+	<!-- optional additions to GameActivity onCreate in GameActivity.java -->
+	<gameActivityOnCreateAdditions>
+		<insert>
+		FacebookSdk.sdkInitialize(getApplicationContext());
+		</insert>
+	</gameActivityOnCreateAdditions>
+
+	<!-- optional additions to GameActivity onDestroy in GameActivity.java -->
+	<gameActivityOnDestroyAdditions>
+		<insert>		
+		</insert>
+	</gameActivityOnDestroyAdditions>
+	
+	
+	<!-- optional additions to GameActivity onStart in GameActivity.java -->
+	<gameActivityOnStartAdditions>
+		<insert>		
+		</insert>
+	</gameActivityOnStartAdditions>
+
+	<!-- optional additions to GameActivity onStop in GameActivity.java -->
+	<gameActivityOnStopAdditions>
+		<insert>		
+		</insert>
+	</gameActivityOnStopAdditions>
+	
+
+	<!-- optional additions to GameActivity onPause in GameActivity.java	-->
+	<gameActivityOnPauseAdditions>
+		<insert>
+		</insert>
+	</gameActivityOnPauseAdditions>
+
+
+	<!-- optional additions to GameActivity onResume in GameActivity.java	-->
+	<gameActivityOnResumeAdditions>
+		<insert>
+		</insert>
+	</gameActivityOnResumeAdditions>
+
+
+	<!-- optional additions to GameActivity onActivityResult in GameActivity.java -->
+	<gameActivityOnActivityResultAdditions>
+	</gameActivityOnActivityResultAdditions>
+	
+
+	<!-- optional libraries to load in GameActivity.java before libUE4.so -->
+	<soLoadLibrary>
+		<!-- need this if plugin enabled and supported architecture, even if not packaged for GearVR -->
+	<!-- 	<if condition="bSupported">
+			<true>
+				<loadLibrary name="vrapi" failmsg="GearVR library not loaded and required!" />
+			</true>
+		</if> -->
+	</soLoadLibrary>
+</root>
