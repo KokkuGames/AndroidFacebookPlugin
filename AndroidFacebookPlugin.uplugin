@@ -3,11 +3,11 @@
 	"Version": 1,
 	"VersionName": "1.0",
 	"FriendlyName": "Android Facebook",
-	"Description": "",
+	"Description": "Facebook online subsystem implementation for android",
 	"Category": "Networking",
 	"CreatedBy": "Kokku Games",
 	"CreatedByURL": "",
-	"DocsURL": "",
+	"DocsURL": "https://github.com/KokkuGames/AndroidFacebookPlugin",
 	"MarketplaceURL": "",
 	"SupportURL": "",
 	"Modules": [

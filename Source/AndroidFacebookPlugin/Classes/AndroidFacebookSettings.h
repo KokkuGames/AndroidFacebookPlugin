@@ -15,4 +15,7 @@ public:
 	// General	
 	UPROPERTY(Config, EditAnywhere, Category=General, meta=(DisplayName="Facebook App Id"))
 	FString FacebookAppId;	
+
+	UPROPERTY(Config, EditAnywhere, Category = General, meta = (DisplayName = "Enable Facebook Support"))
+	bool bEnableFacebookSupport;
 };

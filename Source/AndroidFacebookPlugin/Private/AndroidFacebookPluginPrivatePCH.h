@@ -3,10 +3,29 @@
 #include "CoreUObject.h"
 #include "Engine.h"
 
+#include "Core.h"
+#include "ModuleManager.h"
+
+#include "Json.h"
+#include "OnlineSubsystem.h"
 
 #include "AndroidFacebookPlugin.h"
+
+#if PLATFORM_ANDROID
+#include "OnlineSubsystemFacebook.h"
+#include "OnlineIdentityFacebook.h"
+#include "OnlineFriendsFacebook.h"
+#include "OnlineAvatarFacebook.h"
+#endif
 
 // You should place include statements to your module's private header files here.  You only need to
 // add includes for headers that are used in most of your module's source files though.
 
 #include "AndroidFacebookPluginClasses.h"
+
+/** FName declaration of Facebook subsystem */
+#define FACEBOOK_SUBSYSTEM FName(TEXT("Facebook"))
+
+/** pre-pended to all Facebook logging */
+#undef ONLINE_LOG_PREFIX
+#define ONLINE_LOG_PREFIX TEXT("Facebook: ")

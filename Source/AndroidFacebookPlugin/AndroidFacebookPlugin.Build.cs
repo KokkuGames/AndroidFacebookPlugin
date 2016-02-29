@@ -7,8 +7,9 @@ public class AndroidFacebookPlugin : ModuleRules
 {
 	public AndroidFacebookPlugin(TargetInfo Target)
 	{
-		
-		PublicIncludePaths.AddRange(
+        Definitions.Add("ANDROIDFACEBOOKPLUGIN_PACKAGE=1");
+
+        PublicIncludePaths.AddRange(
 			new string[] {
 				"AndroidFacebookPlugin/Public"
 				// ... add public include paths required here ...
@@ -28,6 +29,7 @@ public class AndroidFacebookPlugin : ModuleRules
 			new string[]
 			{
 				"Core",
+                "OnlineSubsystem", 
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -38,7 +40,8 @@ public class AndroidFacebookPlugin : ModuleRules
 			{
 				"CoreUObject",
 				"Engine",
-				"Settings"
+				"Settings",
+                "Json"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);
@@ -48,6 +51,9 @@ public class AndroidFacebookPlugin : ModuleRules
         {
             string PluginPath = Utils.MakePathRelativeTo(ModuleDirectory, BuildConfiguration.RelativeEnginePath);
             AdditionalPropertiesForReceipt.Add(new ReceiptProperty("AndroidPlugin", Path.Combine(PluginPath, "AndroidFacebookPlugin_APL.xml")));
+
+            PrivateIncludePaths.Add("AndroidFacebookPlugin/Private/Android");
+            PrivateIncludePaths.Add("AndroidFacebookPlugin/Public/Android");
         }
     }
 }

@@ -9,7 +9,7 @@ class FAndroidFacebookPluginModule : public IModuleInterface
 private:
 
 	/** Class responsible for creating instance(s) of the subsystem */
-	class FOnlineFactoryAndroidFacebook* FacebookFactory;
+	class FOnlineFactoryFacebook* FacebookFactory;
 
 public:
 
