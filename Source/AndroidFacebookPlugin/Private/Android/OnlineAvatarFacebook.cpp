@@ -14,6 +14,7 @@ FString FUserAvatarFacebook::GetThumbnailURL() const
 
 FString FUserAvatarFacebook::GetPictureURL() const
 {
+	
 	return FString::Printf(TEXT("https://graph.facebook.com/%s/picture?type=large"), *(UserId->ToString()));
 }
 

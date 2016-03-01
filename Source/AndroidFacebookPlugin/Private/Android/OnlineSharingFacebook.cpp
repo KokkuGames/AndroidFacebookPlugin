@@ -66,8 +66,8 @@ bool FOnlineSharingFacebook::RequestNewReadPermissions(int32 LocalUserNum, EOnli
 	bool bTriggeredRequest = false;
 	if( IdentityInterface->GetLoginStatus(LocalUserNum) == ELoginStatus::LoggedIn )
 	{
-		bTriggeredRequest = true;
 
+		bTriggeredRequest = true;		
 		/*
 		dispatch_async(dispatch_get_main_queue(),^ 
 			{

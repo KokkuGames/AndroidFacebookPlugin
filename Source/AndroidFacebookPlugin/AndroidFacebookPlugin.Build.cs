@@ -23,9 +23,15 @@ public class AndroidFacebookPlugin : ModuleRules
 				// ... add other private include paths required here ...
 			}
 			);
-			
-		
-		PublicDependencyModuleNames.AddRange(
+
+        PrivateIncludePathModuleNames.AddRange(
+            new string[] {
+                "Settings",
+                "Launch",
+            }
+            );
+
+        PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
 				"Core",
@@ -39,8 +45,7 @@ public class AndroidFacebookPlugin : ModuleRules
 			new string[]
 			{
 				"CoreUObject",
-				"Engine",
-				"Settings",
+				"Engine",				
                 "Json"
 				// ... add private dependencies that you statically link with here ...	
 			}
@@ -54,6 +59,9 @@ public class AndroidFacebookPlugin : ModuleRules
 
             PrivateIncludePaths.Add("AndroidFacebookPlugin/Private/Android");
             PrivateIncludePaths.Add("AndroidFacebookPlugin/Public/Android");
+
+            Definitions.Add("PLATFORM_ANDROID=1");
+
         }
     }
 }

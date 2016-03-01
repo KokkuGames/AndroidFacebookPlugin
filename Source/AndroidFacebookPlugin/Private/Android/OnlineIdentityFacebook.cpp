@@ -5,6 +5,8 @@
 #include "AndroidFacebookPluginPrivatePCH.h"
 #include "OnlineIdentityFacebook.h"
 
+#include "Android/AndroidJNI.h"
+
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FUserOnlineAccountFacebook implementation
@@ -50,12 +52,31 @@ bool FUserOnlineAccountFacebook::GetAuthAttribute(const FString& AttrName, FStri
 ///////////////////////////////////////////////////////////////////////////////////////
 // FOnlineIdentityFacebook implementation
 
+jmethodID	AndroidThunkJava_Facebook_Login = NULL;
+jmethodID	AndroidThunkJava_Facebook_Logout = NULL;
+jmethodID	AndroidThunkJava_Facebook_GetProfileName = NULL;
 
 FOnlineIdentityFacebook::FOnlineIdentityFacebook()
 	: UserAccount( MakeShareable(new FUserOnlineAccountFacebook()) )
 	, LoginStatus( ELoginStatus::NotLoggedIn )
 {
-	
+	static bool bGotMethods = false;
+	if (!bGotMethods)
+	{
+		bGotMethods = true;
+
+		JNIEnv* Env = FAndroidApplication::GetJavaEnv(true);
+		check(Env);
+
+		AndroidThunkJava_Facebook_Login = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_Facebook_Login", "(J)V", false);
+		check(AndroidThunkJava_Facebook_Login);
+
+		AndroidThunkJava_Facebook_Logout = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_Facebook_Logout", "(J)V", false);
+		check(AndroidThunkJava_Facebook_Logout);
+
+		AndroidThunkJava_Facebook_GetProfileName = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_Facebook_GetProfileName", "()Ljava/lang/String;", false);
+		check(AndroidThunkJava_Facebook_GetProfileName);
+	}
 }
 
 
@@ -80,10 +101,26 @@ TSharedPtr<const FUniqueNetId> FOnlineIdentityFacebook::GetUniquePlayerId(int32 
 	return UserAccount->GetUserId();
 }
 
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeFbLoginCompleted(JNIEnv* jenv, jobject thiz, jboolean success, jlong handle)
+{
+	UE_LOG(LogOnline, Display, TEXT("Facebook login was successful? - %d"), success);
+
+	FOnlineIdentityFacebook* Identity = reinterpret_cast<FOnlineIdentityFacebook*>(handle);
+	if (!success)
+	{
+		FUniqueNetIdString TempId;
+		Identity->TriggerOnLoginCompleteDelegates(0, false, TempId, TEXT(""));
+	}
+}
+
 
 bool FOnlineIdentityFacebook::Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials)
 {
 	bool bTriggeredLogin = true;
+
+	JNIEnv* Env = FAndroidApplication::GetJavaEnv(true);
+	FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, AndroidThunkJava_Facebook_Login, reinterpret_cast<jlong>(this));
+
 	/*
 	dispatch_async(dispatch_get_main_queue(),^ 
 		{
@@ -231,20 +268,29 @@ ELoginStatus::Type FOnlineIdentityFacebook::GetLoginStatus(const FUniqueNetId& U
 
 FString FOnlineIdentityFacebook::GetPlayerNickname(int32 LocalUserNum) const
 {
-	/*if ([FBSDKAccessToken currentAccessToken])
-	{		
-		return[FBSDKProfile currentProfile].name;
-	}*/
+	if (JNIEnv* Env = FAndroidApplication::GetJavaEnv(true))
+	{	
+		jstring jsString = (jstring)FJavaWrapper::CallObjectMethod(Env, FJavaWrapper::GameActivityThis, AndroidThunkJava_Facebook_GetProfileName);
+		check(jsString);
+
+		const char * nativeName = Env->GetStringUTFChars(jsString, 0);
+		FString ResultName = FString(nativeName);
+		Env->ReleaseStringUTFChars(jsString, nativeName);
+		
+		Env->DeleteLocalRef(jsString);
+
+		return ResultName;
+	}
+	else {
+		check(0);
+	}
+
 	return TEXT("");
 }
 
 FString FOnlineIdentityFacebook::GetPlayerNickname(const FUniqueNetId& UserId) const 
-{
-	/*if ([FBSDKAccessToken currentAccessToken])
-	{
-		return[FBSDKProfile currentProfile].name;
-	}*/
-	return TEXT("");
+{	
+	return GetPlayerNickname(0);
 }
 
 

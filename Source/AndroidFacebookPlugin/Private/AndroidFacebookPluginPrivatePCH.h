@@ -12,6 +12,9 @@
 #include "AndroidFacebookPlugin.h"
 
 #if PLATFORM_ANDROID
+#include "Android/AndroidJNI.h"
+#include "AndroidApplication.h"
+
 #include "OnlineSubsystemFacebook.h"
 #include "OnlineIdentityFacebook.h"
 #include "OnlineFriendsFacebook.h"
