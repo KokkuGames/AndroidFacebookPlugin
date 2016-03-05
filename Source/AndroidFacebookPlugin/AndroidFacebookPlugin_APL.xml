@@ -5,7 +5,7 @@
 	<trace enable="true"/>
 	<init>
 		<log text="Android Facebook init"/>		
-		<copyDir src="$S(PluginDir)/../../JavaLibs" dst="$S(BuildDir)/JavaLibs" />		
+		<copyDir src="$S(PluginDir)/../../Build" dst="$S(PluginDir)/../../../../Build" />		
 	</init>
 	
 	<androidManifestUpdates>
@@ -33,7 +33,6 @@
 	
 	<!-- optional files or directories to copy to Intermediate/Android/APK -->
  	<resourceCopies>
-    <copyDir src="$S(PluginDir)/../../lib" dst="$S(BuildDir)/libs" />	
 	</resourceCopies>
 
 	<!-- optional additions to the GameActivity imports in GameActivity.java -->
