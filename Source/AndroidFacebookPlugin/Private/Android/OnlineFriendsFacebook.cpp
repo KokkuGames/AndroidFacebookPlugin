@@ -45,6 +45,9 @@ const FOnlineUserPresence& FOnlineFriendFacebook::GetPresence() const
 
 // FOnlineFriendsFacebook
 
+DECLARE_JNIMETHOD(AndroidThunkJava_Facebook_ReadFriendsUsingGraphPath);
+
+
 FOnlineFriendsFacebook::FOnlineFriendsFacebook(FOnlineSubsystemFacebook* InSubsystem) 
 {
 	// Get our handle to the identity interface
@@ -53,11 +56,30 @@ FOnlineFriendsFacebook::FOnlineFriendsFacebook(FOnlineSubsystemFacebook* InSubsy
 	SharingInterface = InSubsystem->GetSharingInterface();
 	check( SharingInterface.IsValid() );
 	GConfig->GetArray(TEXT("OnlineSubsystemFacebook.OnlineFriendsFacebook"), TEXT("FriendsFields"), FriendsFields, GEngineIni);	
+
+   INIT_JNIMETHOD(AndroidThunkJava_Facebook_ReadFriendsUsingGraphPath, "(J)V");
 	
 	// always required fields
 	FriendsFields.AddUnique(TEXT("name"));
 }
 
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeFbClearFriends(JNIEnv* jenv, jobject thiz, jlong handle)
+{
+   FOnlineFriendsFacebook* OnlineFriendsFacebook = reinterpret_cast<FOnlineFriendsFacebook*>(handle);
+   OnlineFriendsFacebook->nativeFbClearFriends();
+}
+
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeFbAddFriend(JNIEnv* jenv, jobject thiz, jstring id, jstring name, jlong handle)
+{
+   FOnlineFriendsFacebook* OnlineFriendsFacebook = reinterpret_cast<FOnlineFriendsFacebook*>(handle);
+   OnlineFriendsFacebook->nativeFbAddFriend(ToFString(id), ToFString(name));
+}
+
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeFbReadFriendsUsingGraphPathCompleted(JNIEnv* jenv, jobject thiz, jboolean success, jlong handle)
+{
+   FOnlineFriendsFacebook* OnlineFriendsFacebook = reinterpret_cast<FOnlineFriendsFacebook*>(handle);
+   OnlineFriendsFacebook->nativeFbReadFriendsUsingGraphPathCompleted(success);
+}
 
 FOnlineFriendsFacebook::FOnlineFriendsFacebook()
 {
@@ -68,6 +90,45 @@ FOnlineFriendsFacebook::~FOnlineFriendsFacebook()
 {
 	IdentityInterface = NULL;
 	SharingInterface = NULL;
+}
+
+void FOnlineFriendsFacebook::nativeFbClearFriends()
+{
+   CachedFriends.Empty();
+}
+
+void FOnlineFriendsFacebook::nativeFbAddFriend(const FString & FriendId, const FString & FriendName)
+{
+   // Add new friend entry to list
+   TSharedRef<FOnlineFriendFacebook> FriendEntry(
+      new FOnlineFriendFacebook(*FriendId)
+      );
+   FriendEntry->AccountData.Add(
+      TEXT("id"), *FriendId
+      );
+   FriendEntry->AccountData.Add(
+      TEXT("name"), *FriendName
+      );
+   FriendEntry->AccountData.Add(
+      TEXT("username"), *FriendName
+      );
+   CachedFriends.Add(FriendEntry);
+
+   UE_LOG(LogOnline, Verbose, TEXT("GCFriend - Id:%s - NickName:%s - RealName:%s"),
+      *FriendEntry->GetUserId()->ToString(), *FriendEntry->GetDisplayName(), *FriendEntry->GetRealName());
+}
+
+void FOnlineFriendsFacebook::nativeFbReadFriendsUsingGraphPathCompleted(bool bSuccess)
+{
+   FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+      FSimpleDelegateGraphTask::FDelegate::CreateLambda([=]()
+   {
+      OnReadFriendsListCompleteDelegate.ExecuteIfBound(0, bSuccess, "", FString());
+   }),
+   TStatId(),
+   nullptr,
+   ENamedThreads::GameThread
+   );
 }
 
 bool FOnlineFriendsFacebook::ReadFriendsList(int32 LocalUserNum, const FString& ListName, const FOnReadFriendsListComplete& Delegate /*= FOnReadFriendsListComplete()*/)
@@ -82,8 +143,8 @@ bool FOnlineFriendsFacebook::ReadFriendsList(int32 LocalUserNum, const FString& 
 
 		auto RequestFriendsReadPermissionsDelegate = FOnRequestNewReadPermissionsCompleteDelegate::CreateRaw(this, &FOnlineFriendsFacebook::OnReadFriendsPermissionsUpdated);
 		RequestFriendsReadPermissionsDelegateHandle = SharingInterface->AddOnRequestNewReadPermissionsCompleteDelegate_Handle(LocalUserNum, RequestFriendsReadPermissionsDelegate);
+      OnReadFriendsListCompleteDelegate = Delegate;
 		SharingInterface->RequestNewReadPermissions(LocalUserNum, EOnlineSharingReadCategory::Friends);
-		OnReadFriendsListCompleteDelegate = Delegate;
 	}
 	else
 	{
@@ -202,6 +263,10 @@ void FOnlineFriendsFacebook::OnReadFriendsPermissionsUpdated(int32 LocalUserNum,
 void FOnlineFriendsFacebook::ReadFriendsUsingGraphPath(int32 LocalUserNum, const FString& ListName)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsFacebook::ReadFriendsUsingGraphPath()"));
+
+   JNIEnv* Env = FAndroidApplication::GetJavaEnv(true);
+   FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, AndroidThunkJava_Facebook_ReadFriendsUsingGraphPath, reinterpret_cast<jlong>(this));
+
 	/*
 	dispatch_async(dispatch_get_main_queue(),^ 
 		{

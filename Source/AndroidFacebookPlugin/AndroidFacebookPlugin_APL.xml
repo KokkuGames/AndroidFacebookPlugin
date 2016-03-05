@@ -69,21 +69,91 @@
 		{	
 			Log.debug( "AndroidThunkJava_Facebook_Login()" );
 			mFacebookLoginCallbackHandle = handle;
-			LoginManager.getInstance().logInWithReadPermissions(_activity, Arrays.asList("public_profile", "user_friends"));
+			
+			if (AccessToken.getCurrentAccessToken() != null)
+			{
+				AccessToken.getCurrentAccessToken().refreshCurrentAccessTokenAsync();
+				_activity.AndroidThunkJava_Facebook_FetchMe();
+			}
+			else 
+			{
+				LoginManager.getInstance().logInWithReadPermissions(_activity, Arrays.asList("public_profile", "user_friends"));
+			}
+		}
+		
+		public void AndroidThunkJava_Facebook_FetchMe()
+		{
+			Log.debug("Facebook fetch me");
+				
+			GraphRequest request = GraphRequest.newMeRequest(AccessToken.getCurrentAccessToken(), new GraphRequest.GraphJSONObjectCallback() {
+				@Override
+				public void onCompleted(JSONObject object, GraphResponse response) {
+					// Application code
+					Log.debug("Facebook response " + response.toString());
+					
+					String userId = "";
+					String realName = "";
+					try {
+						userId = object.getString("id");
+						realName = object.getString("name");
+					} catch (JSONException e) {							
+					}
+					
+					String token = AccessToken.getCurrentAccessToken().getToken();
+					Log.debug("Facebook token " + token);
+					
+					nativeFbLoginCompleted(true, userId, token, realName, mFacebookLoginCallbackHandle);
+				}
+			});
+			request.executeAsync();
 		}
 		
 		public native void nativeFbLogoutCompleted(long handle);
 		
 		public void AndroidThunkJava_Facebook_Logout(long handle)
 		{	
-			Log.debug( "AndroidThunkJava_Facebook_Login()" );
+			Log.debug( "AndroidThunkJava_Facebook_Logout()" );
 			nativeFbLogoutCompleted(handle);
 		}
 		
 		public String AndroidThunkJava_Facebook_GetProfileName()
 		{	
-			Log.debug( "AndroidThunkJava_Facebook_GetProfileName()" );
+			Log.debug( "AndroidThunkJava_Facebook_GetProfileName() " + Profile.getCurrentProfile().getName() );
 			return Profile.getCurrentProfile().getName();
+		}
+		
+		public native void nativeFbClearFriends(long handle);
+		public native void nativeFbAddFriend(String id, String name, long handle);
+		public native void nativeFbReadFriendsUsingGraphPathCompleted(boolean success, long handle);
+		
+		public void AndroidThunkJava_Facebook_ReadFriendsUsingGraphPath(final long handle)
+		{	
+			Log.debug( "AndroidThunkJava_Facebook_ReadFriendsUsingGraphPath()" );
+			
+			GraphRequest request = GraphRequest.newMyFriendsRequest(AccessToken.getCurrentAccessToken(), new GraphRequest.GraphJSONArrayCallback() {
+				@Override
+				public void onCompleted(JSONArray objects, GraphResponse response) {
+					// Application code
+					Log.debug("Facebook response " + response.toString());
+					
+					nativeFbClearFriends(handle);
+					
+					for (int i = 0; i &lt; objects.length(); ++i)
+					{
+						try {
+							JSONObject object = objects.getJSONObject(i);
+							String name = object.getString("name");
+							String id = object.getString("id");
+							
+							nativeFbAddFriend(id, name, handle);
+						} catch (JSONException e) {							
+						}
+					}
+					
+					nativeFbReadFriendsUsingGraphPathCompleted(true, handle);
+				}
+			});
+			request.executeAsync();
 		}
 		</insert>
 	</gameActivityClassAdditions>
@@ -117,27 +187,9 @@
 		mFacebookCallback = new FacebookCallback&lt;LoginResult&gt; () {
 		
 			@Override
-			public void onSuccess(final LoginResult loginResult) {
+			public void onSuccess(LoginResult loginResult) {
 				Log.debug("Facebook login " + loginResult.toString());
-				GraphRequest request = GraphRequest.newMeRequest(loginResult.getAccessToken(), new GraphRequest.GraphJSONObjectCallback() {
-					@Override
-					public void onCompleted(JSONObject object, GraphResponse response) {
-						// Application code
-						Log.debug("Facebook response " + response.toString());
-						try {
-							String email = object.getString("email");
-							Log.debug("Facebook obtained email: " + email);
-						} catch (JSONException e) {							
-						}
-						
-						String userId = loginResult.getAccessToken().getUserId();
-						String token = loginResult.getAccessToken().getToken();
-						String realName = Profile.getCurrentProfile().getName();
-						
-						nativeFbLoginCompleted(true, userId, token, realName, mFacebookLoginCallbackHandle);
-					}
-				});
-				request.executeAsync();
+				_activity.AndroidThunkJava_Facebook_FetchMe();
 			}
 			@Override
 			public void onCancel() {
@@ -192,6 +244,9 @@
 
 	<!-- optional additions to GameActivity onActivityResult in GameActivity.java -->
 	<gameActivityOnActivityResultAdditions>
+	<insert>
+	mFacebookCallbackManager.onActivityResult(requestCode, resultCode, data);
+	</insert>
 	</gameActivityOnActivityResultAdditions>
 	
 

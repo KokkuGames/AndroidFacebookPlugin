@@ -7,18 +7,6 @@
 
 #include "Android/AndroidJNI.h"
 
-inline FString ToFString(jstring JavaString)
-{
-	JNIEnv* Env = FAndroidApplication::GetJavaEnv(true);
-	const char* javaChars = Env->GetStringUTFChars(JavaString, 0);
-
-	FString Result = FString(UTF8_TO_TCHAR(javaChars));
-	//Release the string
-	Env->ReleaseStringUTFChars(JavaString, javaChars);
-
-	return Result;
-}
-
 ///////////////////////////////////////////////////////////////////////////////////////
 // FUserOnlineAccountFacebook implementation
 
@@ -63,9 +51,9 @@ bool FUserOnlineAccountFacebook::GetAuthAttribute(const FString& AttrName, FStri
 ///////////////////////////////////////////////////////////////////////////////////////
 // FOnlineIdentityFacebook implementation
 
-jmethodID	AndroidThunkJava_Facebook_Login = NULL;
-jmethodID	AndroidThunkJava_Facebook_Logout = NULL;
-jmethodID	AndroidThunkJava_Facebook_GetProfileName = NULL;
+DECLARE_JNIMETHOD(AndroidThunkJava_Facebook_Login);
+DECLARE_JNIMETHOD(AndroidThunkJava_Facebook_Logout);
+DECLARE_JNIMETHOD(AndroidThunkJava_Facebook_GetProfileName);
 
 FOnlineIdentityFacebook::FOnlineIdentityFacebook()
 	: UserAccount( MakeShareable(new FUserOnlineAccountFacebook()) )
@@ -76,17 +64,9 @@ FOnlineIdentityFacebook::FOnlineIdentityFacebook()
 	{
 		bGotMethods = true;
 
-		JNIEnv* Env = FAndroidApplication::GetJavaEnv(true);
-		check(Env);
-
-		AndroidThunkJava_Facebook_Login = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_Facebook_Login", "(J)V", false);
-		check(AndroidThunkJava_Facebook_Login);
-
-		AndroidThunkJava_Facebook_Logout = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_Facebook_Logout", "(J)V", false);
-		check(AndroidThunkJava_Facebook_Logout);
-
-		AndroidThunkJava_Facebook_GetProfileName = FJavaWrapper::FindMethod(Env, FJavaWrapper::GameActivityClassID, "AndroidThunkJava_Facebook_GetProfileName", "()Ljava/lang/String;", false);
-		check(AndroidThunkJava_Facebook_GetProfileName);
+      INIT_JNIMETHOD(AndroidThunkJava_Facebook_Login, "(J)V");
+      INIT_JNIMETHOD(AndroidThunkJava_Facebook_Logout, "(J)V");
+      INIT_JNIMETHOD(AndroidThunkJava_Facebook_GetProfileName, "()Ljava/lang/String;");
 	}
 }
 
@@ -117,7 +97,6 @@ typedef void (*NativeFbLoginCompletedFunc) (bool, const FString&, const FString&
 
 extern "C" void Java_com_epicgames_ue4_GameActivity_nativeFbLoginCompleted(JNIEnv* jenv, jobject thiz, jboolean success, jstring userId, jstring accessToken, jstring realName, jlong handle)
 {
-	UE_LOG(LogOnline, Display, TEXT("Facebook login was successful? - %d"), success);
 
 	FOnlineIdentityFacebook* Identity = reinterpret_cast<FOnlineIdentityFacebook*>(handle);
 	Identity->SetLoginResults(success, ToFString(userId), ToFString(accessToken), ToFString(realName));
@@ -332,6 +311,8 @@ FPlatformUserId FOnlineIdentityFacebook::GetPlatformUserIdFromUniqueNetId(const 
 
 void FOnlineIdentityFacebook::SetLoginResults(bool bSuccess, const FString & Id, const FString & Ticket, const FString & UserName)
 {
+   LoginStatus = bSuccess ? ELoginStatus::LoggedIn : ELoginStatus::NotLoggedIn;
+
 	if (!bSuccess)
 	{
 		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
@@ -347,6 +328,8 @@ void FOnlineIdentityFacebook::SetLoginResults(bool bSuccess, const FString & Id,
 	}
 	else
 	{
+      UE_LOG(LogOnline, Display, TEXT("Facebook login was successful!- %s %s"), *UserName, *Ticket);
+
 		UserAccount->UserId = MakeShareable(new FUniqueNetIdString(Id));
 		UserAccount->AuthTicket = Ticket;
 		UserAccount->UserName = UserName;

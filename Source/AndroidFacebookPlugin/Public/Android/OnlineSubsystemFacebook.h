@@ -6,6 +6,20 @@
 #include "OnlineSubsystemImpl.h"
 #include "OnlineSubsystemFacebookPackage.h"
 
+inline FString ToFString(jstring JavaString)
+{
+   JNIEnv* Env = FAndroidApplication::GetJavaEnv(true);
+   const jchar* javaChars = Env->GetStringChars(JavaString, 0);
+   jsize len = Env->GetStringLength(JavaString);
+
+   FString Result = FString(len, StringCast<TCHAR>((const FPlatformTypes::CHAR16*)javaChars, len).Get());
+
+   Env->ReleaseStringChars(JavaString, javaChars);
+   Env->DeleteLocalRef(JavaString);
+
+   return Result;
+}
+
 /** Forward declarations of all interface classes */
 typedef TSharedPtr<class FOnlineIdentityFacebook, ESPMode::ThreadSafe> FOnlineIdentityFacebookPtr;
 typedef TSharedPtr<class FOnlineFriendsFacebook, ESPMode::ThreadSafe> FOnlineFriendsFacebookPtr;

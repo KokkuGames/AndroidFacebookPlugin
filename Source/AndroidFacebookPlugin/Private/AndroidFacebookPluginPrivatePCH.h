@@ -32,3 +32,10 @@
 /** pre-pended to all Facebook logging */
 #undef ONLINE_LOG_PREFIX
 #define ONLINE_LOG_PREFIX TEXT("Facebook: ")
+
+#define DECLARE_JNIMETHOD(name) \
+   jmethodID	name = NULL;
+
+#define INIT_JNIMETHOD(name, sig) \
+   name = FJavaWrapper::FindMethod(FAndroidApplication::GetJavaEnv(true), FJavaWrapper::GameActivityClassID, #name, sig, false); \
+   check(name);

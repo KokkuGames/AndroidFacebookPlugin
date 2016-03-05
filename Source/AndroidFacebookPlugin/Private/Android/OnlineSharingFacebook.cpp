@@ -68,6 +68,7 @@ bool FOnlineSharingFacebook::RequestNewReadPermissions(int32 LocalUserNum, EOnli
 	{
 
 		bTriggeredRequest = true;		
+      TriggerOnRequestNewReadPermissionsCompleteDelegates(LocalUserNum, true);
 		/*
 		dispatch_async(dispatch_get_main_queue(),^ 
 			{

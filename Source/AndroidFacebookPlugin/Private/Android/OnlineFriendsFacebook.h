@@ -114,6 +114,9 @@ public:
 	 */
 	virtual ~FOnlineFriendsFacebook();
 
+   void nativeFbClearFriends();
+   void nativeFbAddFriend(const FString& FriendId, const FString& FriendName);
+   void nativeFbReadFriendsUsingGraphPathCompleted(bool bSuccess);
 
 private:
 
