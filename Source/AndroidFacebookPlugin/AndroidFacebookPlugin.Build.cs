@@ -59,9 +59,6 @@ public class AndroidFacebookPlugin : ModuleRules
 
             PrivateIncludePaths.Add("AndroidFacebookPlugin/Private/Android");
             PrivateIncludePaths.Add("AndroidFacebookPlugin/Public/Android");
-
-            Definitions.Add("PLATFORM_ANDROID=1");
-
         }
     }
 }
