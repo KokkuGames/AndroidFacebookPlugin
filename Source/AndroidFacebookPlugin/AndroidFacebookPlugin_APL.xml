@@ -5,6 +5,7 @@
 	<trace enable="true"/>
 	<init>
 		<log text="Android Facebook init"/>		
+		<copyDir src="$S(PluginDir)/../../JavaLibs" dst="$S(BuildDir)/JavaLibs" />		
 	</init>
 	
 	<androidManifestUpdates>
@@ -13,38 +14,26 @@
           android:configChanges=
                  "keyboard|keyboardHidden|screenLayout|screenSize|orientation"
           android:theme="@android:style/Theme.Translucent.NoTitleBar"
-          android:label="@string/app_name" />
-
-      
+          android:label="@string/app_name" />		  
     </addElements>
     
 		<setStringFromProperty result="FacebookAppId" ini="Engine" section="/Script/AndroidFacebookPlugin.AndroidFacebookSettings" property="FacebookAppId" default="undefined"/>
     <setElement result="fbMetaData" value="meta-data"/>
     <addAttribute tag="$fbMetaData" name="android:name" value="com.facebook.sdk.ApplicationId"/>
-    <addAttribute tag="$fbMetaData" name="android:value" value="pb$S(FacebookAppId)"/>
+    <addAttribute tag="$fbMetaData" name="android:value" value="fb$S(FacebookAppId)"/>
     <addElement tag="application" name="fbMetaData"/>
 	</androidManifestUpdates>
 
 	<!-- optional additions to proguard -->
 	<proguardAdditions>
 		<insert>
-<!-- -keep class com.oculus.** {
-<meta-data android:name="com.facebook.sdk.ApplicationId"/>
-   *;
-}
--keep class android.app.** {
-   *;
-} -->
-
 -keep class com.facebook.** { *; }
 		</insert>
 	</proguardAdditions>
 	
 	<!-- optional files or directories to copy to Intermediate/Android/APK -->
  	<resourceCopies>
-    <copyFile src="$S(PluginDir)/../../lib/facebook.jar" dst="$S(BuildDir)/libs/facebook.jar" />
-    <copyFile src="$S(PluginDir)/../../lib/android-support-v7-cardview.jar" dst="$S(BuildDir)/libs/android-support-v7-cardview.jar" />
-		<copyDir src="$S(PluginDir)/../../res" dst="$S(BuildDir)/res" />
+    <copyDir src="$S(PluginDir)/../../lib" dst="$S(BuildDir)/libs" />	
 	</resourceCopies>
 
 	<!-- optional additions to the GameActivity imports in GameActivity.java -->
@@ -55,8 +44,14 @@
 			import java.security.MessageDigest;
 			import java.security.NoSuchAlgorithmException;
 			import android.util.Base64;
+			
+			import org.json.*;
+			import java.util.Arrays;
+			
+			import com.facebook.*;
 			import com.facebook.FacebookSdk;
-			import com.facebook.Profile;			
+			import com.facebook.login.LoginManager;
+			import com.facebook.login.LoginResult;
 		</insert>
 	</gameActivityImportAdditions>
 	
@@ -64,12 +59,18 @@
 	<!-- optional additions to the GameActivity class in GameActivity.java -->
 	<gameActivityClassAdditions>
 		<insert>
-		public native void nativeFbLoginCompleted(boolean success, long handle);
+		private CallbackManager mFacebookCallbackManager;
+		private FacebookCallback&lt;LoginResult&gt; mFacebookCallback;
+		
+		private long mFacebookLoginCallbackHandle;
+		
+		public native void nativeFbLoginCompleted(boolean success, String userId, String accessToken, String realName, long handle);
 		
 		public void AndroidThunkJava_Facebook_Login(long handle)
 		{	
 			Log.debug( "AndroidThunkJava_Facebook_Login()" );
-			nativeFbLoginCompleted(false, handle);
+			mFacebookLoginCallbackHandle = handle;
+			LoginManager.getInstance().logInWithReadPermissions(_activity, Arrays.asList("public_profile", "user_friends"));
 		}
 		
 		public native void nativeFbLogoutCompleted(long handle);
@@ -99,6 +100,7 @@
 	<gameActivityOnCreateAdditions>
 		<insert>
 		FacebookSdk.sdkInitialize(getApplicationContext());
+		
 		try {
 			PackageInfo info = getPackageManager().getPackageInfo(getPackageName(), PackageManager.GET_SIGNATURES);
 			for (Signature signature : info.signatures) {
@@ -111,6 +113,47 @@
 		} catch (NoSuchAlgorithmException e) {
 
 		}
+		
+		//init callbacks
+		mFacebookCallback = new FacebookCallback&lt;LoginResult&gt; () {
+		
+			@Override
+			public void onSuccess(final LoginResult loginResult) {
+				Log.debug("Facebook login " + loginResult.toString());
+				GraphRequest request = GraphRequest.newMeRequest(loginResult.getAccessToken(), new GraphRequest.GraphJSONObjectCallback() {
+					@Override
+					public void onCompleted(JSONObject object, GraphResponse response) {
+						// Application code
+						Log.debug("Facebook response " + response.toString());
+						try {
+							String email = object.getString("email");
+							Log.debug("Facebook obtained email: " + email);
+						} catch (JSONException e) {							
+						}
+						
+						String userId = loginResult.getAccessToken().getUserId();
+						String token = loginResult.getAccessToken().getToken();
+						String realName = Profile.getCurrentProfile().getName();
+						
+						nativeFbLoginCompleted(true, userId, token, realName, mFacebookLoginCallbackHandle);
+					}
+				});
+				request.executeAsync();
+			}
+			@Override
+			public void onCancel() {
+				Log.debug("facebook login canceled");
+				nativeFbLoginCompleted(false, "", "", "", mFacebookLoginCallbackHandle);
+			}
+
+			@Override
+			public void onError(FacebookException e) {
+				Log.debug("facebook login failed error");
+				nativeFbLoginCompleted(false, "", "", "", mFacebookLoginCallbackHandle);
+			}
+		};
+		mFacebookCallbackManager = CallbackManager.Factory.create();		
+		LoginManager.getInstance().registerCallback(mFacebookCallbackManager, mFacebookCallback);
 		</insert>
 	</gameActivityOnCreateAdditions>
 

@@ -7,6 +7,17 @@
 
 #include "Android/AndroidJNI.h"
 
+inline FString ToFString(jstring JavaString)
+{
+	JNIEnv* Env = FAndroidApplication::GetJavaEnv(true);
+	const char* javaChars = Env->GetStringUTFChars(JavaString, 0);
+
+	FString Result = FString(UTF8_TO_TCHAR(javaChars));
+	//Release the string
+	Env->ReleaseStringUTFChars(JavaString, javaChars);
+
+	return Result;
+}
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // FUserOnlineAccountFacebook implementation
@@ -98,25 +109,26 @@ TArray<TSharedPtr<FUserOnlineAccount> > FOnlineIdentityFacebook::GetAllUserAccou
 
 TSharedPtr<const FUniqueNetId> FOnlineIdentityFacebook::GetUniquePlayerId(int32 LocalUserNum) const
 {
+	
 	return UserAccount->GetUserId();
 }
 
-extern "C" void Java_com_epicgames_ue4_GameActivity_nativeFbLoginCompleted(JNIEnv* jenv, jobject thiz, jboolean success, jlong handle)
+typedef void (*NativeFbLoginCompletedFunc) (bool, const FString&, const FString&, const FString&);
+
+extern "C" void Java_com_epicgames_ue4_GameActivity_nativeFbLoginCompleted(JNIEnv* jenv, jobject thiz, jboolean success, jstring userId, jstring accessToken, jstring realName, jlong handle)
 {
 	UE_LOG(LogOnline, Display, TEXT("Facebook login was successful? - %d"), success);
 
 	FOnlineIdentityFacebook* Identity = reinterpret_cast<FOnlineIdentityFacebook*>(handle);
-	if (!success)
-	{
-		FUniqueNetIdString TempId;
-		Identity->TriggerOnLoginCompleteDelegates(0, false, TempId, TEXT(""));
-	}
+	Identity->SetLoginResults(success, ToFString(userId), ToFString(accessToken), ToFString(realName));
 }
 
 
 bool FOnlineIdentityFacebook::Login(int32 LocalUserNum, const FOnlineAccountCredentials& AccountCredentials)
 {
 	bool bTriggeredLogin = true;
+
+	
 
 	JNIEnv* Env = FAndroidApplication::GetJavaEnv(true);
 	FJavaWrapper::CallVoidMethod(Env, FJavaWrapper::GameActivityThis, AndroidThunkJava_Facebook_Login, reinterpret_cast<jlong>(this));
@@ -316,4 +328,37 @@ FPlatformUserId FOnlineIdentityFacebook::GetPlatformUserIdFromUniqueNetId(const 
 	}
 
 	return PLATFORMUSERID_NONE;
+}
+
+void FOnlineIdentityFacebook::SetLoginResults(bool bSuccess, const FString & Id, const FString & Ticket, const FString & UserName)
+{
+	if (!bSuccess)
+	{
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+			FSimpleDelegateGraphTask::FDelegate::CreateLambda([=]()
+			{
+				FUniqueNetIdString TempId;
+				TriggerOnLoginCompleteDelegates(0, false, TempId, TEXT(""));
+			}),
+			TStatId(),
+			nullptr,
+			ENamedThreads::GameThread
+			);
+	}
+	else
+	{
+		UserAccount->UserId = MakeShareable(new FUniqueNetIdString(Id));
+		UserAccount->AuthTicket = Ticket;
+		UserAccount->UserName = UserName;
+
+		FSimpleDelegateGraphTask::CreateAndDispatchWhenReady(
+			FSimpleDelegateGraphTask::FDelegate::CreateLambda([=]()
+			{
+				TriggerOnLoginCompleteDelegates(0, true, UserAccount->UserId.Get(), TEXT(""));
+			}),
+			TStatId(),
+			nullptr,
+			ENamedThreads::GameThread
+			);
+	}
 }

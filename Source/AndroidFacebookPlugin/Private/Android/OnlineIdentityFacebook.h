@@ -85,6 +85,7 @@ public:
 	virtual FPlatformUserId GetPlatformUserIdFromUniqueNetId(const FUniqueNetId& UniqueNetId) override;
 	// End IOnlineIdentity interface
 
+	void SetLoginResults(bool bSuccess, const FString& Id, const FString& Ticket, const FString& Name);
 
 public:
 
