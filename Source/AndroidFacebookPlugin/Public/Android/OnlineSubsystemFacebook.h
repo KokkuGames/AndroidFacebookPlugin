@@ -9,13 +9,11 @@
 inline FString ToFString(jstring JavaString)
 {
    JNIEnv* Env = FAndroidApplication::GetJavaEnv(true);
-   const jchar* javaChars = Env->GetStringChars(JavaString, 0);
-   jsize len = Env->GetStringLength(JavaString);
+   const char* javaChars = Env->GetStringUTFChars(JavaString, 0);
 
-   FString Result = FString(len, StringCast<TCHAR>((const FPlatformTypes::CHAR16*)javaChars, len).Get());
-
-   Env->ReleaseStringChars(JavaString, javaChars);
-   Env->DeleteLocalRef(JavaString);
+   FString Result = FString(UTF8_TO_TCHAR(javaChars));
+   //Release the string
+   Env->ReleaseStringUTFChars(JavaString, javaChars);
 
    return Result;
 }
