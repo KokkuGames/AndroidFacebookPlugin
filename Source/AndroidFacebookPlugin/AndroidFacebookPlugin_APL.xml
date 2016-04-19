@@ -91,17 +91,24 @@
 					// Application code
 					Log.debug("Facebook response " + response.toString());
 					
+					String token = AccessToken.getCurrentAccessToken().getToken();
+					Log.debug("Facebook token " + token);
+					
 					String userId = "";
 					String realName = "";
 					try {
 						userId = object.getString("id");
 						realName = object.getString("name");
 					} catch (JSONException e) {							
+						nativeFbLoginCompleted(false, userId, token, realName, mFacebookLoginCallbackHandle);
+						return;
+					} catch (NullPointerException e) {
+						Log.debug("Facebook failed getting me");
+						nativeFbLoginCompleted(false, userId, token, realName, mFacebookLoginCallbackHandle);
+						return;
 					}
 					
-					String token = AccessToken.getCurrentAccessToken().getToken();
-					Log.debug("Facebook token " + token);
-					
+          Log.debug("Facebook retrieved me");
 					nativeFbLoginCompleted(true, userId, token, realName, mFacebookLoginCallbackHandle);
 				}
 			});
@@ -135,6 +142,12 @@
 				public void onCompleted(JSONArray objects, GraphResponse response) {
 					// Application code
 					Log.debug("Facebook response " + response.toString());
+					
+					if (objects == null) {
+						Log.debug("Facebook failed getting friends");
+						nativeFbReadFriendsUsingGraphPathCompleted(false, handle);            
+						return;
+					}
 					
 					nativeFbClearFriends(handle);
 					
