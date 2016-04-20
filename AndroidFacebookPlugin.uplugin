@@ -14,7 +14,8 @@
 		{
 			"Name": "AndroidFacebookPlugin",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"WhitelistPlatforms" : [ "Android" ]
 		}
 	],
 	"EnabledByDefault": false,
