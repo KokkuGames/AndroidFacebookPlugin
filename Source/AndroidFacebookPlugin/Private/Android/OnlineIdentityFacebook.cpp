@@ -38,6 +38,11 @@ bool FUserOnlineAccountFacebook::GetUserAttribute(const FString& AttrName, FStri
 	return false;
 }
 
+bool FUserOnlineAccountFacebook::SetUserAttribute(const FString & AttrName, const FString & AttrValue)
+{
+	return false;
+}
+
 FString FUserOnlineAccountFacebook::GetAccessToken() const
 {
 	return AuthTicket;
@@ -344,4 +349,10 @@ void FOnlineIdentityFacebook::SetLoginResults(bool bSuccess, const FString & Id,
 			ENamedThreads::GameThread
 			);
 	}
+}
+
+
+FString FOnlineIdentityFacebook::GetAuthType() const
+{
+	return TEXT("");
 }
