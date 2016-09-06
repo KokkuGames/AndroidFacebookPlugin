@@ -28,7 +28,7 @@ FString FUserOnlineAccountFacebook::GetRealName() const
 	return UserName;
 }
 
-FString FUserOnlineAccountFacebook::GetDisplayName() const
+FString FUserOnlineAccountFacebook::GetDisplayName(const FString& Platform) const
 {
 	return UserName;
 }
