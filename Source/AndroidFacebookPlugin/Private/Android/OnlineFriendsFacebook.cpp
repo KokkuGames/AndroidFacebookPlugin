@@ -265,6 +265,10 @@ bool FOnlineFriendsFacebook::GetBlockedPlayers(const FUniqueNetId& UserId, TArra
 	return false;
 }
 
+void FOnlineFriendsFacebook::DumpBlockedPlayers() const
+{
+}
+
 void FOnlineFriendsFacebook::OnReadFriendsPermissionsUpdated(int32 LocalUserNum, bool bWasSuccessful)
 {
 	UE_LOG(LogOnline, Verbose, TEXT("FOnlineFriendsFacebook::OnReadPermissionsUpdated() - %d"), bWasSuccessful);
